@@ -28,12 +28,21 @@ interface Layout extends Position {
 }
 
 interface ScrollOpts {
-  initialDelay: number;
-  maxSpeed: number;
+//   initialDelay: number;
+//   maxSpeed: number;
   // scrollAreaAbsLayout: Layout
 }
 
-export const makeScrollStream = ({ initialDelay, maxSpeed }: ScrollOpts) => {
+export const makeScrollStream = ({ }: ScrollOpts) => {
+  const accelerationTime = 1500;
+  const accelerationStep = 100;
+  const initialDelay = 300;
+  const maxSpeed = 1; // px/ms
+  const overlapStep = 0.05;
+  const speedFactorPrec = 1/0.01;
+
+  const overlapStepMult = 1/overlapStep
+
   const draggable$ = new BehaviorSubject<Layout | null>(null);
 
   const scrollArea$ = new BehaviorSubject<Layout | null>(null);
@@ -53,7 +62,7 @@ export const makeScrollStream = ({ initialDelay, maxSpeed }: ScrollOpts) => {
         if (overlap >= 1) {
           overlap = 1;
         }
-        overlap = Math.ceil(overlap * 10) / 10;
+        overlap = Math.ceil(overlap * overlapStepMult) / overlapStepMult;
         return overlap;
       }),
     )
@@ -68,26 +77,27 @@ export const makeScrollStream = ({ initialDelay, maxSpeed }: ScrollOpts) => {
       if (!overlapping) {
         return of(0);
       }
-      const accelerationTime = 1500;
-      const accelerationStep = 100;
-      const totalAccSteps = Math.ceil(accelerationTime/accelerationStep);
+
+      const totalAccSteps = Math.ceil(accelerationTime / accelerationStep);
       const accelerationFactor$ = concat(
         of(-1),
         interval(accelerationStep),
       ).pipe(
         take(totalAccSteps),
-        map(ind => {
-            return (ind + 2) / totalAccSteps
-        })
-      )
+        map((ind) => {
+          return (ind + 2) / totalAccSteps;
+        }),
+      );
       const delay$ = of(0).pipe(delay(initialDelay));
 
       return concat(
         delay$,
         combineLatest([overlap$, accelerationFactor$]).pipe(
           map(([overlap, accelerationFactor]) => {
-              console.log('accelerationFactor', accelerationFactor)
-            return overlap * maxSpeed * accelerationFactor
+            // console.log('accelerationFactor', accelerationFactor);
+            let speedFactor =  Math.pow(overlap, 1.5) * accelerationFactor;
+            speedFactor = Math.ceil( speedFactor * speedFactorPrec)  / speedFactorPrec;
+            return speedFactor * maxSpeed;
           }),
         ),
       );
@@ -101,6 +111,9 @@ export const makeScrollStream = ({ initialDelay, maxSpeed }: ScrollOpts) => {
 
   scrollSpeed$.subscribe((val) => {
     console.log('scrollSpeed$', val);
+  });
+  overlap$.subscribe((val) => {
+    // console.log('overlap$', val);
   });
 
   return {

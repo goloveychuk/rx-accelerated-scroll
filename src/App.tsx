@@ -44,7 +44,8 @@ function Comp({
     setCaptured(false);
   };
 
-  const onMouseMove: React.MouseEventHandler<HTMLDivElement> = (ev) => {
+  const onMouseMoveRef = useRef<any>(null)
+  onMouseMoveRef.current =  (ev: any) => {
     if (isCaptured) {
       const rect = (ev.target as HTMLDivElement).getBoundingClientRect();
       const absLayout: Layout = {
@@ -59,6 +60,16 @@ function Comp({
       );
     }
   };
+  
+  useEffect(() => {
+    
+    window.addEventListener('mousemove', (ev) => {
+      onMouseMoveRef.current(ev)
+    });
+  
+  }, [])
+  
+
   return (
     <div
       style={{
@@ -69,7 +80,7 @@ function Comp({
       }}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
-      onMouseMove={onMouseMove}
+      // onMouseMove={onMouseMove}
       className="comp"
     ></div>
   );
@@ -162,7 +173,7 @@ function App() {
     scrollSpeed$,
     setScrollAreaAbsLayout,
   } = React.useMemo(
-    () => makeScrollStream({ initialDelay: 700, maxSpeed: 1 }), // px/ms
+    () => makeScrollStream({ }), // px/ms
     [],
   );
 
