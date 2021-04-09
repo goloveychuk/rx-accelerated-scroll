@@ -1,5 +1,7 @@
 .App {
+  display: flex;
   text-align: center;
+  justify-content: center;
 }
 
 .App-logo {
@@ -13,6 +15,16 @@
   }
 }
 
+.page {
+  /* background-color: gainsboro; */
+  background-image: url("https://images.unsplash.com/photo-1526763025764-2a8073a0cd43?ixlib=rb-1.2.1&ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&auto=format&fit=crop&w=934&q=80");
+}
+
+.comp {
+  background-color: cornflowerblue;
+  position: fixed;
+}
+
 .App-header {
   background-color: #282c34;
   min-height: 100vh;
@@ -22,6 +34,15 @@
   justify-content: center;
   font-size: calc(10px + 2vmin);
   color: white;
+}
+
+.scrollarea {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  opacity: 0.5;
+  width: 100%;
+  background-color: aquamarine;
 }
 
 .App-link {
