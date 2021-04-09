@@ -79,7 +79,7 @@ type Action = { type: 'setNewPos'; data: { id: number; pos: Position } };
 
 const initialModel: Model = {
   page: {
-    height: 4000,
+    height: 14000,
     width: 900,
   },
   components: [{ id: 1, x: 600, y: 300, width: 150, height: 80 }],
@@ -162,7 +162,7 @@ function App() {
     scrollSpeed$,
     setScrollAreaAbsLayout,
   } = React.useMemo(
-    () => makeScrollStream({ initialDelay: 700, maxSpeed: 0.5 }), //0.5 px in ms
+    () => makeScrollStream({ initialDelay: 700, maxSpeed: 1 }), // px/ms
     [],
   );
 
@@ -171,12 +171,14 @@ function App() {
 
   useEffect(() => {
     let clean: null | (() => void) = null;
+
+
     scrollSpeed$.subscribe((scrollSpeed) => {
       if (clean) {
         clean();
       }
       if (scrollSpeed !== 0) {
-        clean = scrollTo(pageRef.current!, 2300, scrollSpeed);
+        clean = scrollTo(pageRef.current!, model.page.height-1000, scrollSpeed);
       }
     });
     const rect = scrollAreaRef.current!.getBoundingClientRect();

@@ -4,12 +4,14 @@ import {
   concat,
   Subject,
   of,
+  interval,
   combineLatest,
 } from 'rxjs';
 import {
   map,
   distinctUntilChanged,
   switchMap,
+  take,
   flatMap,
   mergeMap,
   delay,
@@ -66,7 +68,29 @@ export const makeScrollStream = ({ initialDelay, maxSpeed }: ScrollOpts) => {
       if (!overlapping) {
         return of(0);
       }
-      return concat(of(0).pipe(delay(initialDelay)), overlap$);
+      const accelerationTime = 1500;
+      const accelerationStep = 100;
+      const totalAccSteps = Math.ceil(accelerationTime/accelerationStep);
+      const accelerationFactor$ = concat(
+        of(-1),
+        interval(accelerationStep),
+      ).pipe(
+        take(totalAccSteps),
+        map(ind => {
+            return (ind + 2) / totalAccSteps
+        })
+      )
+      const delay$ = of(0).pipe(delay(initialDelay));
+
+      return concat(
+        delay$,
+        combineLatest([overlap$, accelerationFactor$]).pipe(
+          map(([overlap, accelerationFactor]) => {
+              console.log('accelerationFactor', accelerationFactor)
+            return overlap * maxSpeed * accelerationFactor
+          }),
+        ),
+      );
     }),
   );
 
