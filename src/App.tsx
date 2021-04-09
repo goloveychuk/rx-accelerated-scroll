@@ -124,15 +124,21 @@ const scrollTo = function (element: HTMLElement, to: number, speed: number) {
   let startTime = new Date().getTime()
   let lastAnimatedScroll: null | number = null;
   let diff = 0;
+
   const animateScroll = function () {
     lastAnimatedScroll = null;
     const now = new Date().getTime()
     const offset = speed * (now - startTime) - diff;
     console.log(speed, ((now - startTime)));
     diff += offset;
-    element.scrollTop = diff + start;
-    console.log(element.scrollTop)
+    const newScrolltop = diff + start;
+    element.scrollTop = newScrolltop
+    // console.log(toelement.scrollTop, element.scrollHeight)
+    if (to < newScrolltop) {
+      return
+    }
     // if (currentTime < duration) {
+      // if (element.scrollTop === lastScrollTop)
     lastAnimatedScroll = requestAnimationFrame(animateScroll);
     // } else {
     //   element.scrollTop = to;
@@ -169,7 +175,9 @@ function App() {
       if (clean) {
         clean();
       }
-      clean = scrollTo(pageRef.current!, model.page.height, scrollSpeed);
+      if (scrollSpeed !== 0) {
+        clean = scrollTo(pageRef.current!, 2300, scrollSpeed);
+      }
     });
     const rect = scrollAreaRef.current!.getBoundingClientRect();
     setScrollAreaAbsLayout({
