@@ -129,7 +129,7 @@ const scrollTo = function (element: HTMLElement, to: number, speed: number) {
     lastAnimatedScroll = null;
     const now = new Date().getTime()
     const offset = speed * (now - startTime) - diff;
-    console.log(speed, ((now - startTime)));
+
     diff += offset;
     const newScrolltop = diff + start;
     element.scrollTop = newScrolltop
@@ -162,7 +162,7 @@ function App() {
     scrollSpeed$,
     setScrollAreaAbsLayout,
   } = React.useMemo(
-    () => makeScrollStream({ initialDelay: 1500, maxSpeed: 0.5 }), //0.5 px in ms
+    () => makeScrollStream({ initialDelay: 700, maxSpeed: 0.5 }), //0.5 px in ms
     [],
   );
 

@@ -1,5 +1,19 @@
-import { BehaviorSubject, Subject, combineLatest } from 'rxjs';
-import { map, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import {
+  merge,
+  BehaviorSubject,
+  concat,
+  Subject,
+  of,
+  combineLatest,
+} from 'rxjs';
+import {
+  map,
+  distinctUntilChanged,
+  switchMap,
+  flatMap,
+  mergeMap,
+  delay,
+} from 'rxjs/operators';
 
 interface Position {
   x: number;
@@ -13,18 +27,21 @@ interface Layout extends Position {
 
 interface ScrollOpts {
   initialDelay: number;
-  maxSpeed: number
+  maxSpeed: number;
   // scrollAreaAbsLayout: Layout
 }
 
 export const makeScrollStream = ({ initialDelay, maxSpeed }: ScrollOpts) => {
-  const draggable$ = new Subject<Layout>();
+  const draggable$ = new BehaviorSubject<Layout | null>(null);
 
-  const scrollArea$ = new Subject<Layout>();
+  const scrollArea$ = new BehaviorSubject<Layout | null>(null);
 
   const overlap$ = combineLatest([draggable$, scrollArea$])
     .pipe(
       map(([draggable, scrollLayout]) => {
+        if (!draggable || !scrollLayout) {
+          return 0;
+        }
         const draggableBottom = draggable.y + draggable.height;
         let overlap = draggableBottom - scrollLayout.y;
         if (overlap <= 0) {
@@ -40,39 +57,27 @@ export const makeScrollStream = ({ initialDelay, maxSpeed }: ScrollOpts) => {
     )
     .pipe(distinctUntilChanged());
 
-
-    overlap$.subscribe(val => {
-        console.log('overlap', val)
-    })
-
-
   const overlapping$ = overlap$
     .pipe(map((overlap) => overlap !== 0))
     .pipe(distinctUntilChanged());
 
-  const scrollSpeed2$ = overlapping$.pipe(
+  const scrollSpeed$ = overlapping$.pipe(
     switchMap((overlapping) => {
-
-    //   if (!overlapping) {
-    //     return new BehaviorSubject(0);
-    //   }
-    console.log('here')
-
-      return overlap$.pipe(map((overlap) => {
-        console.log({overlap})
-        return maxSpeed * overlap
-      }));
+      if (!overlapping) {
+        return of(0);
+      }
+      return concat(of(0).pipe(delay(initialDelay)), overlap$);
     }),
   );
 
-  const scrollSpeed$ = overlap$.pipe(map((overlap) => {
-    console.log({overlap})
-    return maxSpeed * overlap
-  }))
+  // const scrollSpeed$ = overlap$.pipe(map((overlap) => {
+  //   console.log({overlap})
+  //   return maxSpeed * overlap
+  // }))
 
-//   scrollSpeed$.subscribe((val) => {
-//     console.log('val', val);
-//   });
+  scrollSpeed$.subscribe((val) => {
+    console.log('scrollSpeed$', val);
+  });
 
   return {
     setDraggableAbsLayout: (layout: Layout) => draggable$.next(layout),
