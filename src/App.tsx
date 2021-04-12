@@ -44,10 +44,11 @@ function Comp({
     setCaptured(false);
   };
 
-  const onMouseMoveRef = useRef<any>(null)
-  onMouseMoveRef.current =  (ev: any) => {
+  const draggableRef = useRef<HTMLDivElement>(null);
+  const onMouseMoveRef = useRef<any>(null);
+  onMouseMoveRef.current = (ev: any) => {
     if (isCaptured) {
-      const rect = (ev.target as HTMLDivElement).getBoundingClientRect();
+      const rect = draggableRef.current!.getBoundingClientRect();
       const absLayout: Layout = {
         x: rect.left,
         y: rect.top,
@@ -60,18 +61,16 @@ function Comp({
       );
     }
   };
-  
+
   useEffect(() => {
-    
     window.addEventListener('mousemove', (ev) => {
-      onMouseMoveRef.current(ev)
+      onMouseMoveRef.current(ev);
     });
-  
-  }, [])
-  
+  }, []);
 
   return (
     <div
+      ref={draggableRef}
       style={{
         left: comp.x,
         top: comp.y,
@@ -112,15 +111,17 @@ const modelReducer = (model: Model, action: Action): Model => {
 };
 
 const scrollAreaHeight = 100;
-const ScrollArea = React.forwardRef(({}, ref) => {
-  return (
-    <div
-      ref={ref as any}
-      style={{ height: scrollAreaHeight }}
-      className="scrollarea"
-    ></div>
-  );
-});
+const ScrollArea = React.forwardRef(
+  ({ className }: { className: string }, ref) => {
+    return (
+      <div
+        ref={ref as any}
+        style={{ height: scrollAreaHeight }}
+        className={'scrollarea ' + className}
+      ></div>
+    );
+  },
+);
 
 const ScrollHandler = React.memo(() => {
   // const {setNewPosition, scrollSpeed$} = React.useMemo(() => makeScrollStream(), []);
@@ -132,24 +133,26 @@ const scrollTo = function (element: HTMLElement, to: number, speed: number) {
   element = document.scrollingElement as any;
 
   let start = element.scrollTop;
-  let startTime = new Date().getTime()
+  let startTime = new Date().getTime();
   let lastAnimatedScroll: null | number = null;
   let diff = 0;
 
+  const direction = to > start ? 1 : -1;
+
   const animateScroll = function () {
     lastAnimatedScroll = null;
-    const now = new Date().getTime()
+    const now = new Date().getTime();
     const offset = speed * (now - startTime) - diff;
 
     diff += offset;
     const newScrolltop = diff + start;
-    element.scrollTop = newScrolltop
+    element.scrollTop = newScrolltop;
     // console.log(toelement.scrollTop, element.scrollHeight)
-    if (to < newScrolltop) {
-      return
+    if (to < newScrolltop * direction) {
+      return;
     }
     // if (currentTime < duration) {
-      // if (element.scrollTop === lastScrollTop)
+    // if (element.scrollTop === lastScrollTop)
     lastAnimatedScroll = requestAnimationFrame(animateScroll);
     // } else {
     //   element.scrollTop = to;
@@ -171,52 +174,67 @@ function App() {
   const {
     setDraggableAbsLayout,
     scrollSpeed$,
-    setScrollAreaAbsLayout,
+    setBottomScrollAreaAbsLayout,
+    setTopScrollAreaAbsLayout,
   } = React.useMemo(
-    () => makeScrollStream({ }), // px/ms
+    () => makeScrollStream({}), // px/ms
     [],
   );
 
-  const scrollAreaRef = useRef<HTMLDivElement>();
+  const topScrollArea = useRef<HTMLDivElement>();
+  const bottomScrollArea = useRef<HTMLDivElement>();
   const pageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let clean: null | (() => void) = null;
 
-
+    const maxScrollY =
+      document.documentElement.scrollHeight -
+      document.documentElement.clientHeight -
+      100;
+    console.log({maxScrollY});
     scrollSpeed$.subscribe((scrollSpeed) => {
       if (clean) {
         clean();
       }
+
       if (scrollSpeed !== 0) {
-        clean = scrollTo(pageRef.current!, model.page.height-1000, scrollSpeed);
+        const to = scrollSpeed < 0 ? 0 : maxScrollY;
+        clean = scrollTo(pageRef.current!, to, scrollSpeed);
       }
     });
-    const rect = scrollAreaRef.current!.getBoundingClientRect();
-    setScrollAreaAbsLayout({
-      x: rect.left,
-      y: rect.top,
-      height: rect.height,
-      width: rect.width,
+    const topRect = topScrollArea.current!.getBoundingClientRect();
+    setTopScrollAreaAbsLayout({
+      x: topRect.left,
+      y: topRect.top,
+      height: topRect.height,
+      width: topRect.width,
+    });
+    const bottomRect = bottomScrollArea.current!.getBoundingClientRect();
+    setBottomScrollAreaAbsLayout({
+      x: bottomRect.left,
+      y: bottomRect.top,
+      height: bottomRect.height,
+      width: bottomRect.width,
     });
   }, []);
   return (
     <div className="App">
-      
-      <ScrollArea ref={scrollAreaRef} />
+      <ScrollArea className="top" ref={topScrollArea} />
+      <ScrollArea className="bottom" ref={bottomScrollArea} />
       <ScrollHandler />
       <div
         ref={pageRef}
         style={{ height: model.page.height, width: model.page.width }}
         className="page"
       >
-      {model.components.map((comp) => {
+        {model.components.map((comp) => {
           const onNewPos = (pos: Position, abs: Layout) => {
             action({ type: 'setNewPos', data: { id: comp.id, pos } });
             setDraggableAbsLayout(abs);
           };
           return <Comp key={comp.id} comp={comp} onNewPos={onNewPos} />;
-        })}  
+        })}
       </div>
     </div>
   );

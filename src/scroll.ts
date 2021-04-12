@@ -28,26 +28,28 @@ interface Layout extends Position {
 }
 
 interface ScrollOpts {
-//   initialDelay: number;
-//   maxSpeed: number;
+  //   initialDelay: number;
+  //   maxSpeed: number;
   // scrollAreaAbsLayout: Layout
 }
 
-export const makeScrollStream = ({ }: ScrollOpts) => {
+export const makeScrollStream = ({}: ScrollOpts) => {
   const accelerationTime = 1500;
   const accelerationStep = 100;
   const initialDelay = 300;
   const maxSpeed = 1; // px/ms
   const overlapStep = 0.05;
-  const speedFactorPrec = 1/0.01;
+  const speedFactorPrec = 1 / 0.01;
 
-  const overlapStepMult = 1/overlapStep
+  const overlapStepMult = 1 / overlapStep;
 
   const draggable$ = new BehaviorSubject<Layout | null>(null);
 
-  const scrollArea$ = new BehaviorSubject<Layout | null>(null);
+  const bottomScrollArea$ = new BehaviorSubject<Layout | null>(null);
+  const topScrollArea$ = new BehaviorSubject<Layout | null>(null);
 
-  const overlap$ = combineLatest([draggable$, scrollArea$])
+
+  const bottomOverlap$ = combineLatest([draggable$, bottomScrollArea$])
     .pipe(
       map(([draggable, scrollLayout]) => {
         if (!draggable || !scrollLayout) {
@@ -62,11 +64,48 @@ export const makeScrollStream = ({ }: ScrollOpts) => {
         if (overlap >= 1) {
           overlap = 1;
         }
+        // if (overlap === 1) {
+        //     debugger;
+        // }
         overlap = Math.ceil(overlap * overlapStepMult) / overlapStepMult;
         return overlap;
       }),
     )
     .pipe(distinctUntilChanged());
+
+  
+
+  const topOverlap$ = combineLatest([draggable$, topScrollArea$])
+    .pipe(
+      map(([draggable, scrollLayout]) => {
+        if (!draggable || !scrollLayout) {
+          return 0;
+        }
+        let overlap = scrollLayout.y + scrollLayout.height - draggable.y;
+        if (overlap <= 0) {
+          return 0;
+        }
+        overlap = overlap / scrollLayout.height;
+        if (overlap >= 1) {
+          overlap = 1;
+        }
+        overlap = Math.ceil(overlap * overlapStepMult) / overlapStepMult;
+    
+        return overlap;
+      }),
+    )
+    .pipe(distinctUntilChanged());
+
+
+  const overlap$ = combineLatest([topOverlap$, bottomOverlap$]).pipe(
+    map(([topOverlap, bottomOverlap]) => {
+        console.log({bottomOverlap, topOverlap})
+      if (bottomOverlap !== 0) {
+        return bottomOverlap;
+      }
+      return -1 * topOverlap;
+    }),
+  );
 
   const overlapping$ = overlap$
     .pipe(map((overlap) => overlap !== 0))
@@ -95,9 +134,11 @@ export const makeScrollStream = ({ }: ScrollOpts) => {
         combineLatest([overlap$, accelerationFactor$]).pipe(
           map(([overlap, accelerationFactor]) => {
             // console.log('accelerationFactor', accelerationFactor);
-            let speedFactor =  Math.pow(overlap, 1.5) * accelerationFactor;
-            speedFactor = Math.ceil( speedFactor * speedFactorPrec)  / speedFactorPrec;
-            return speedFactor * maxSpeed;
+            let isNegative = overlap < 0 ? -1 : 1;
+            let speedFactor = Math.pow(Math.abs(overlap), 1.5) * accelerationFactor;
+            speedFactor =
+              Math.ceil(speedFactor * speedFactorPrec) / speedFactorPrec;
+            return speedFactor * maxSpeed * isNegative
           }),
         ),
       );
@@ -109,16 +150,16 @@ export const makeScrollStream = ({ }: ScrollOpts) => {
   //   return maxSpeed * overlap
   // }))
 
-  scrollSpeed$.subscribe((val) => {
-    console.log('scrollSpeed$', val);
-  });
-  overlap$.subscribe((val) => {
-    // console.log('overlap$', val);
-  });
+//   scrollSpeed$.subscribe((val) => {
+//     console.log('scrollSpeed$', val);
+//   });
+  
 
   return {
     setDraggableAbsLayout: (layout: Layout) => draggable$.next(layout),
-    setScrollAreaAbsLayout: (layout: Layout) => scrollArea$.next(layout),
+    setBottomScrollAreaAbsLayout: (layout: Layout) =>
+      bottomScrollArea$.next(layout),
+    setTopScrollAreaAbsLayout: (layout: Layout) => topScrollArea$.next(layout),
     scrollSpeed$,
   };
 };
