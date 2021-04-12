@@ -99,7 +99,6 @@ export const makeScrollStream = ({}: ScrollOpts) => {
 
   const overlap$ = combineLatest([topOverlap$, bottomOverlap$]).pipe(
     map(([topOverlap, bottomOverlap]) => {
-        console.log({bottomOverlap, topOverlap})
       if (bottomOverlap !== 0) {
         return bottomOverlap;
       }

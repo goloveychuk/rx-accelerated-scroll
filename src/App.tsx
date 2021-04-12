@@ -133,11 +133,16 @@ const scrollTo = function (element: HTMLElement, to: number, speed: number) {
   element = document.scrollingElement as any;
 
   let start = element.scrollTop;
+
   let startTime = new Date().getTime();
   let lastAnimatedScroll: null | number = null;
   let diff = 0;
 
-  const direction = to > start ? 1 : -1;
+  const direction = to === 0 ? -1 : 1;
+
+  if (to <= start * direction) {
+    return null;
+  }
 
   const animateScroll = function () {
     lastAnimatedScroll = null;
@@ -148,7 +153,8 @@ const scrollTo = function (element: HTMLElement, to: number, speed: number) {
     const newScrolltop = diff + start;
     element.scrollTop = newScrolltop;
     // console.log(toelement.scrollTop, element.scrollHeight)
-    if (to < newScrolltop * direction) {
+
+    if (to <= newScrolltop * direction) {
       return;
     }
     // if (currentTime < duration) {
@@ -192,7 +198,7 @@ function App() {
       document.documentElement.scrollHeight -
       document.documentElement.clientHeight -
       100;
-    console.log({maxScrollY});
+    console.log({ maxScrollY });
     scrollSpeed$.subscribe((scrollSpeed) => {
       if (clean) {
         clean();
